@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+	<title>AIL-Framework</title>
+	<link rel="icon" href="{{ url_for('static', filename='image/ail-icon.png')}}">
+	<!-- Core CSS -->
+	<link href="{{ url_for('static', filename='css/bootstrap4.min.css') }}" rel="stylesheet">
+	<link href="{{ url_for('static', filename='css/font-awesome.min.css') }}" rel="stylesheet">
+	<link href="{{ url_for('static', filename='css/daterangepicker.min.css') }}" rel="stylesheet">
+
+	<!-- JS -->
+	<script src="{{ url_for('static', filename='js/jquery.js')}}"></script>
+	<script src="{{ url_for('static', filename='js/popper.min.js')}}"></script>
+	<script src="{{ url_for('static', filename='js/bootstrap4.min.js')}}"></script>
+	<script language="javascript" src="{{ url_for('static', filename='js/moment.min.js') }}"></script>
+	<script language="javascript" src="{{ url_for('static', filename='js/jquery.daterangepicker.min.js') }}"></script>
+	<script language="javascript" src="{{ url_for('static', filename='js/d3.min.js') }}"></script>
+
+</head>
+
+<body>
+
+	{% include 'nav_bar.html' %}
+
+	<div class="container-fluid">
+		<div class="row">
+
+			{% include 'crawler/menu_sidebar.html' %}
+
+			<div class="col-12 col-lg-10" id="core_content">
+
+				{% include 'crawler/crawler_disabled.html' %}
+
+						<div class="card text-white bg-dark mb-3 mt-1">
+						  <div class="card-header">
+								<h5 class="card-title">Crawl a Domain</h5>
+							</div>
+						  <div class="card-body">
+						    <p class="card-text">Enter an url or a domain and choose what kind of option you want.</p>
+								<form action="{{ url_for('crawler_splash.send_to_spider') }}" method='post'>
+									<div class="row">
+										<div class="col-12 col-lg-6">
+											<div class="input-group" id="date-range-from">
+												<input type="text" class="form-control" id="url_to_crawl" name="url_to_crawl" placeholder="Address or Domain">
+											</div>
+											<div class="d-flex mt-2">
+												<i class="fas fa-spider mt-1"></i> &nbsp;Crawler Type&nbsp;&nbsp;
+												<div class="custom-control custom-switch">
+													<input class="custom-control-input" type="checkbox" name="queue_type_selector" value="True" id="queue_type_selector">
+													<label class="custom-control-label" for="queue_type_selector">
+														<i class="fas fa-splotch"></i> &nbsp;Proxy
+													</label>
+												</div>
+											</div>
+											<div id="div_crawler_queue_type">
+												<select class="custom-select form-control" name="crawler_queue_type" id="crawler_queue_type">
+													{%for crawler_type in crawlers_types%}
+														<option value="{{crawler_type}}" {%if crawler_type=='tor'%}selected{%endif%}>{{crawler_type}}</option>
+													{%endfor%}
+												</select>
+											</div>
+                                            <div class="input-group" id="div_proxy_name">
+												<input type="text" class="form-control" id="proxy_name" name="proxy_name" placeholder="Expected Format: [scheme]://[username]:[password]@[hostname]:[port]">
+											</div>
+											<div class="d-flex mt-3">
+												<i class="fas fa-user-ninja mt-1"></i> &nbsp;Manual&nbsp;&nbsp;
+												<div class="custom-control custom-switch">
+													<input class="custom-control-input" type="checkbox" name="crawler_scheduler" value="True" id="crawler_scheduler">
+													<label class="custom-control-label" for="crawler_scheduler">
+														<i class="fas fa-clock"></i> &nbsp;Scheduler
+													</label>
+												</div>
+											</div>
+
+                                            <div id="frequency_inputs">
+                                                <div class="mb-4">
+                                                    <select class="custom-select" id="frequency" name="frequency" onchange="frequency_selector_update(this);">
+                                                        <option value="hourly">Hourly</option>
+                                                        <option value="daily">Daily</option>
+                                                        <option value="weekly">Weekly</option>
+                                                        <option value="monthly">Monthly</option>
+                                                        <option value="custom">Custom</option>
+                                                    </select>
+                                                </div>
+                                                <div id="custom_frequency">
+                                                    <h5><i class="fas fa-clock"></i>&nbsp;Adjust crawling interval as needed</h5>
+                                                    <div class="input-group">
+                                                        <div class="input-group-prepend">
+                                                            <span class="input-group-text bg-light" style="width: 90px"><b>Months</b></span>
+                                                        </div>
+                                                        <input class="form-control" type="number" id="frequency_months" value="0" min="0" name="frequency_months" required>
+                                                    </div>
+                                                    <div class="input-group">
+                                                        <div class="input-group-prepend">
+                                                            <span class="input-group-text bg-light" style="width: 90px"><b>Weeks</b></span>
+                                                        </div>
+                                                        <input class="form-control" type="number" id="frequency_weeks" value="0" min="0" name="frequency_weeks" required>
+                                                    </div>
+                                                    <div class="input-group">
+                                                        <div class="input-group-prepend">
+                                                            <span class="input-group-text bg-light" style="width: 90px"><b>Days</b></span>
+                                                        </div>
+                                                        <input class="form-control" type="number" id="frequency_days" value="0" min="0" name="frequency_days" required>
+                                                    </div>
+                                                    <div class="input-group">
+                                                        <div class="input-group-prepend">
+                                                            <span class="input-group-text bg-light" style="width: 90px"><b>Hours</b></span>
+                                                        </div>
+                                                        <input class="form-control" type="number" id="frequency_hours" value="0" min="0" name="frequency_hours" required>
+                                                    </div>
+                                                    <div class="input-group">
+                                                        <div class="input-group-prepend">
+                                                            <span class="input-group-text bg-light" style="width: 90px"><b>Minutes</b></span>
+                                                        </div>
+                                                        <input class="form-control" type="number" id="frequency_minutes" value="0" min="0" name="frequency_minutes" required>
+                                                    </div>
+                                                </div>
+
+                                            </div>
+
+										</div>
+
+
+										<div class="col-12 col-lg-6 mt-2 mt-lg-0">
+
+											<div class="row">
+												<div class="col-12 col-xl-6">
+													<div class="custom-control custom-switch">
+													  <input class="custom-control-input" type="checkbox" name="html_content" value="True" id="html_content_id" checked disabled>
+														<label class="custom-control-label" for="html_content_id">
+															<i class="fab fa-html5"></i> &nbsp;HTML
+													  </label>
+													</div>
+													<div class="custom-control custom-switch mt-1">
+													  <input class="custom-control-input" type="checkbox" name="screenshot" value="True" id="screenshot_id">
+														<label class="custom-control-label" for="screenshot_id">
+															<i class="fas fa-image"></i> Screenshot
+														</label>
+													</div>
+													<div class="custom-control custom-switch mt-1">
+													  <input class="custom-control-input" type="checkbox" name="har" value="True" id="har_id">
+														<label class="custom-control-label" for="har_id">
+															<i class="fas fa-file"></i> &nbsp;HAR
+														</label>
+													</div>
+												</div>
+												<div class="col-12 col-xl-6">
+													<div class="input-group form-group mb-0">
+														<div class="input-group-prepend">
+													    <span class="input-group-text bg-light"><i class="fas fa-water"></i></span>
+													  </div>
+													  <input class="form-control" type="number" id="depth_limit" name="depth_limit" min="0" value="0" required>
+														<div class="input-group-append">
+													    <span class="input-group-text">Depth Limit</span>
+													  </div>
+													</div>
+{#                                                    TEMPORARY DISABLED #}
+{#													<div class="input-group mt-2">#}
+{#														<div class="input-group-prepend">#}
+{#													    <span class="input-group-text bg-light"><i class="fas fa-copy"></i>&nbsp;</span>#}
+{#													  </div>#}
+{#													  <input class="form-control" type="number" id="max_pages" name="max_pages" min="1" value="1" required>#}
+{#														<div class="input-group-append">#}
+{#													    <span class="input-group-text">Max Pages</span>#}
+{#													  </div>#}
+{#													</div>#}
+												</div>
+											</div>
+
+											<div class="mt-1">
+												<i class="mt-2 text-white fas fa-cookie-bite"></i> Cookiejar:
+												<select class="custom-select form-control mt-1" name="cookiejar" id="cookiejar">
+													<option value="None" selected>Don't use any cookiejar</option>
+													{%for cookiejar in l_cookiejar%}
+														<option value="{{cookiejar}}">{{cookiejar}}</option>
+													{%endfor%}
+												</select>
+											</div>
+
+										</div>
+									</div>
+									<button class="btn btn-primary mt-2">
+										<i class="fas fa-spider"></i> Send to Spider
+									</button>
+								<form>
+						  </div>
+						</div>
+
+
+			</div>
+
+		</div>
+	</div>
+
+
+</body>
+
+<script>
+var chart = {};
+$(document).ready(function(){
+	$("#page-Crawler").addClass("active");
+	$("#nav_manual_crawler").addClass("active");
+	queue_type_selector_input_controler()
+	manual_crawler_input_controler();
+    $("#custom_frequency").hide();
+
+	$('#crawler_scheduler').on("change", function () {
+		manual_crawler_input_controler();
+	});
+
+	$('#queue_type_selector').on("change", function () {
+		queue_type_selector_input_controler();
+	});
+});
+
+function toggle_sidebar(){
+	if($('#nav_menu').is(':visible')){
+		$('#nav_menu').hide();
+		$('#side_menu').removeClass('border-right')
+		$('#side_menu').removeClass('col-lg-2')
+		$('#core_content').removeClass('col-lg-10')
+	}else{
+		$('#nav_menu').show();
+		$('#side_menu').addClass('border-right')
+		$('#side_menu').addClass('col-lg-2')
+		$('#core_content').addClass('col-lg-10')
+	}
+}
+
+function manual_crawler_input_controler() {
+	if($('#crawler_scheduler').is(':checked')){
+		$("#frequency_inputs").show();
+	}else{
+		$("#frequency_inputs").hide();
+	}
+}
+
+function frequency_selector_update(obj) {
+	if(obj.value === "custom") {
+        $("#custom_frequency").show();
+    }else{
+		$("#custom_frequency").hide();
+	}
+}
+
+function queue_type_selector_input_controler() {
+	if($('#queue_type_selector').is(':checked')){
+		$("#div_crawler_queue_type").hide();
+		$("#div_proxy_name").show();
+	}else{
+		$("#div_crawler_queue_type").show();
+		$("#div_proxy_name").hide();
+	}
+}
+
+</script>

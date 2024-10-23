@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Show Item Object - AIL</title>
+  <link rel="icon" href="{{ url_for('static', filename='image/ail-icon.png') }}">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="{{ url_for('static', filename='css/bootstrap4.min.css') }}" rel="stylesheet">
+	<link href="{{ url_for('static', filename='css/font-awesome.min.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/dataTables.bootstrap.min.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/tags.css') }}" rel="stylesheet" type="text/css" />
+    <link href="{{ url_for('static', filename='css/ail-project.css') }}" rel="stylesheet">
+
+  <script src="{{ url_for('static', filename='js/jquery.js')}}"></script>
+  <script src="{{ url_for('static', filename='js/popper.min.js')}}"></script>
+  <script src="{{ url_for('static', filename='js/bootstrap4.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/jquery.dataTables.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/dataTables.bootstrap.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/tags.js') }}"></script>
+
+  <style>
+    .popover{
+        max-width: 100%;
+    }
+	.rotate{
+		-moz-transition: all 0.1s linear;
+		-webkit-transition: all 0.1s linear;
+		transition: all 0.1s linear;
+	}
+
+	.rotate.down{
+		-moz-transform:rotate(180deg);
+		-webkit-transform:rotate(180deg);
+		transform:rotate(180deg);
+	}
+	</style>
+
+</head>
+<body>
+  {% include 'nav_bar.html' %}
+
+  <div class="card my-2 mx-2">
+    <div class="card-header bg-dark">
+      <h3 class="text-white text-center" >{{ meta['name'] }}</h3>
+    </div>
+    <div class="card-body pb-1">
+      <table class="table table-condensed">
+        <thead class="">
+          <tr>
+            <th>Date</th>
+            <th>Source</th>
+            <!-- <th>Encoding</th> -->
+            <th>Size (Kb)</th>
+            <th>Number of lines</th>
+            <th>Max line length</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+          <td>{{ meta['date'] }}</td>
+          <td>{{ meta['source'] }}</td>
+          <!-- <td>{{ meta['encoding'] }}</td> -->
+          <td>{{ meta['size'] }}</td>
+          <td>{{ meta['lines']['nb'] }}</td>
+          <td>{{ meta['lines']['max_length'] }}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div>
+        <h5>
+          <span>
+            {% include 'modals/edit_tag.html' %}
+            {% for tag in meta['tags'] %}
+              <button class="btn btn-{{ bootstrap_label[loop.index0 % 5] }}" data-toggle="modal" data-target="#edit_tags_modal"
+              data-tagid="{{ tag }}" data-objtype="item" data-objsubtype="" data-objid="{{ meta['id'] }}">
+                {{ tag }}
+              </button>
+
+            {%  endfor %}
+            <br>
+            {% include 'modals/add_tags.html' %}
+            <button type="button" class="btn btn-light" data-toggle="modal" data-target="#add_tags_modal">
+              <i class="far fa-plus-square"></i>
+            </button>
+          </span>
+        </h5>
+      </div>
+
+      {% if meta['father'] %}
+        <div class="mt-3">
+          Father: <a href="{{ url_for('objects_item.showItem')}}?id={{meta['father']}}" target="_blank">{{meta['father']}}</a>
+        </div>
+      {% endif %}
+
+      <div class="d-flex flex-row-reverse bd-highlight">
+        <div>
+          <a href="{{ url_for('correlation.show_correlation')}}?type=item&id={{ meta['id'] }}" target="_blank">
+						<button class="btn btn-lg btn-info"><i class="fas fa-project-diagram"></i> Correlations Graph
+						</button>
+					</a>
+        </div>
+        <div>
+          {% with obj_type='item', obj_id=meta['id'], obj_subtype=''%}
+            {% include 'modals/investigations_register_obj.html' %}
+          {% endwith %}
+          <div class="mr-2">
+            <button type="button" class="btn btn-lg btn-primary" data-toggle="modal" data-target="#investigations_register_obj_modal">
+              <i class="fas fa-microscope"></i> Investigations
+            </button>
+          </div>
+        </div>
+        <div class="mx-2">
+          {% with obj_type='item', obj_id=meta['id'], obj_lvl=0%}
+            {% include 'import_export/block_add_user_object_to_export.html' %}
+          {% endwith %}
+        </div>
+        {% if is_hive_connected %}
+          <div>
+            {% include 'modals/create_hive_case.html' %}
+            <button type="button" class="btn btn-lg btn-outline-dark mx-1" data-toggle="modal" data-target="#create_hive_case_modal">
+              Create
+              <img id="thehive-icon" src="{{url_for('static', filename='image/thehive_icon.png') }}">
+              Case
+            </button>
+          </div>
+        {% endif %}
+      </div>
+
+    </div>
+  </div>
+
+  {% if misp_eventid %}
+    <div class="list-group" id="misp_event">
+      <li class="list-group-item active">MISP Events already Created</li>
+      <a target="_blank" href="{{ misp_url }}" class="list-group-item">{{ misp_url }}</a>
+    </div>
+  {% endif %}
+
+  {% if meta['hive_case'] %}
+    <div class="list-group" id="misp_event">
+      <li class="list-group-item active">The Hive Case already Created</li>
+      <a target="_blank" href="{{ hive_url }}" class="list-group-item">{{ hive_url }}</a>
+    </div>
+  {% endif %}
+
+  {% if  meta['duplicates'] != 0 %}
+    <div id="accordionDuplicate" class="mb-2 mx-3">
+      <div class="card">
+        <div class="card-header py-1" id="headingDuplicate">
+          <div class="row">
+            <div class="col-11">
+              <div class="mt-2">
+                <i class="far fa-clone"></i> duplicates&nbsp;&nbsp;
+                <div class="badge badge-warning">{{meta['duplicates']|length}}</div>
+              </div>
+            </div>
+            <div class="col-1">
+              <button class="btn btn-link btn-lg py-2 float-right rotate" data-toggle="collapse" data-target="#collapseDuplicate" aria-expanded="true" aria-controls="collapseDuplicate">
+                <i class="fas fa-chevron-circle-down"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div id="collapseDuplicate" class="collapse" aria-labelledby="headingDuplicate" data-parent="#accordionDuplicate">
+          <div class="card-body">
+
+            <table class="table" id="tableDup">
+              <thead class="thead-dark">
+                <tr>
+                  <th>Date</th>
+                  <th>Similarity</th>
+                  <th>Item</th>
+                  <th>Diff</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for duplicate_id in meta['duplicates'] %}
+                  <tr>
+                    <td>{{meta['duplicates'][duplicate_id]['date']}}</td>
+                    <td class="py-0">
+                      <table class="table table-borderless table-sm my-0">
+                        <tbody>
+                          {%for dict_algo in meta['duplicates'][duplicate_id]|sort(attribute='algo')%}
+                            <tr>
+                              <td class="py-0">{{dict_algo['algo']}}</td>
+                              <td class="w-100 py-0">
+                                <div class="progress mt-1">
+                                  <div class="progress-bar progress-bar-striped {%if dict_algo['algo']=='tlsh'%}bg-secondary{%endif%}" role="progressbar" style="width: {{dict_algo['similarity']}}%;" aria-valuenow="{{dict_algo['similarity']}}" aria-valuemin="0" aria-valuemax="100">
+                                    {{dict_algo['similarity']}}%
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          {%endfor%}
+                        </tbody>
+                      </table>
+                    </td>
+                    <td>
+                      <a href="{{ url_for('objects_item.showItem')}}?id={{duplicate_id}}" target="_blank">
+                        {{duplicate_id}}
+                      </a>
+                    </td>
+                    <td>
+                      <a target="_blank" href="{{ url_for('objects_item.object_item_diff') }}?id1={{meta['id']}}&id2={{duplicate_id}}" class="fa fa-columns" title="Show diff"></a>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+  {% endif %}
+
+
+  {% if  l_64|length != 0 %}
+  <div id="accordionDecoded" class="mb-3">
+    <div class="card">
+      <div class="card-header py-1" id="headingDecoded">
+        <div class="row">
+          <div class="col-11">
+            <div class="mt-2">
+              <i class="fas fa-lock-open"></i> Decoded Files&nbsp;&nbsp;
+              <div class="badge badge-warning">{{l_64|length}}</div>
+            </div>
+          </div>
+          <div class="col-1">
+            <button class="btn btn-link  py-2 float-right rotate" data-toggle="collapse" data-target="#collapseDecoded" aria-expanded="true" aria-controls="collapseDecoded">
+              <i class="fas fa-chevron-circle-down"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div id="collapseDecoded" class="collapse show" aria-labelledby="headingDecoded" data-parent="#accordionDecoded">
+        <div class="card-body">
+
+          <table id="tableb64" class="red_table table table-striped">
+            <thead>
+              <tr>
+                <th>estimated type</th>
+                <th>hash</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for b64 in l_64 %}
+                <tr>
+                  <td><i class="fas {{ b64[0] }}"></i>&nbsp;&nbsp;{{ b64[1] }}</td>
+                  <td><a target="_blank" href="{{ url_for('correlation.show_correlation') }}?type=decoded&id={{ b64[2] }}"> {{b64[2]}} ({{ b64[4] }})</a></td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+
+        </div>
+      </div>
+
+
+    </div>
+  </div>
+  {% endif %}
+
+
+  {% if meta['crawler'] %}
+  <div id="accordionCrawler" class="mb-3 mx-3">
+    <div class="card">
+      <div class="card-header py-1" id="headingCrawler">
+        <div class="row">
+          <div class="col-11">
+            <div class="mt-2">
+              <i class="fas fa-spider"></i> Crawler
+            </div>
+          </div>
+          <div class="col-1">
+            <button class="btn btn-link btn-lg py-2 float-right rotate down" data-toggle="collapse" data-target="#collapseCrawler" aria-expanded="true" aria-controls="collapseCrawler">
+              <i class="fas fa-chevron-circle-down"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div id="collapseCrawler" class="collapse show" aria-labelledby="headingCrawler" data-parent="#accordionCrawler">
+
+        <div class="row mx-0">
+
+          <div class="col-md-5">
+            <div class="my-2">
+              <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <td></td>
+                        <td>Last Origin:</td>
+                    </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><i class="far fa-file"></i></td>
+                    <td>
+                      <a class="badge" target="_blank" href="{{ url_for('objects_item.showItem', paste=meta['father']) }}">{{ meta['father'] }}</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><i class="fab fa-html5"></i></td>
+                    <td>
+                      <a class="badge" target="_blank" href="{{ url_for('crawler_splash.showDomain', domain=meta['crawler']['domain']) }}">{{ meta['crawler']['domain'] }}</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>url</td>
+                    <td>
+                      {{ meta['crawler']['url'] }}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="col-md-7">
+            <div class="card my-2" style="background-color:#ecf0f1;">
+              <div class="card-body py-2">
+                <div class="row">
+                  <div class="col-md-8">
+                    <input class="custom-range mt-2" id="blocks" type="range" min="1" max="50" value="{%if meta['crawler']['is_tags_safe']%}13{%else%}0{%endif%}">
+                  </div>
+                  <div class="col-md-4">
+                    <button class="btn {%if meta['crawler']['is_tags_safe']%}btn-primary{%else%}btn-danger{%endif%}" onclick="blocks.value=50;pixelate();">
+                      {%if meta['crawler']['is_tags_safe']%}
+                        <i class="fas fas fa-plus-square"></i>
+                      {%else%}
+                        <i class="fas fa-exclamation-triangle"></i>
+                      {%endif%}
+                      <span class="label-icon">Full resolution</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <canvas id="canvas" style="width:100%;"></canvas>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+
+  {% if extracted_matches %}
+  <div id="accordion_extracted" class="mb-3 mx-3">
+      <div class="card">
+          <div class="card-header py-1" id="heading_extracted">
+              <div class="row">
+                  <div class="col-11">
+                      <div class="mt-2">
+                          <img id="misp-logo" src="{{ url_for('static', filename='image/ail-icon.png')}}" height="32"> Extracted&nbsp;&nbsp;
+                          <div class="badge badge-warning">{{extracted_matches|length}}</div>
+                      </div>
+                  </div>
+                  <div class="col-1">
+                      <button class="btn btn-link btn-lg py-2 float-right rotate down" data-toggle="collapse" data-target="#collapse_extracted" aria-expanded="true" aria-controls="collapseDecoded">
+                          <i class="fas fa-chevron-circle-down"></i>
+                      </button>
+                  </div>
+              </div>
+          </div>
+
+          <div id="collapse_extracted" class="collapse show" aria-labelledby="heading_extracted" data-parent="#accordion_extracted">
+              <div class="card-body">
+                  <table id="table_extracted" class="table table-striped">
+                      <thead class="thead-dark">
+                      <tr>
+                          <th>Type</th>
+                          <th>ID</th>
+                          <th>Extracted</th>
+                      </tr>
+                      </thead>
+                      <tbody>
+                      {% for match in extracted_matches %}
+                          <tr>
+                              <td>
+                                  <svg height="26" width="26">
+                                      <g class="nodes">
+                                          <circle cx="13" cy="13" r="13" fill="{{ extracted_matches[match]['icon']['color'] }}"></circle>
+                                          <text x="13" y="13" text-anchor="middle" dominant-baseline="central" class="graph_node_icon {{ extracted_matches[match]['icon']['style'] }}" font-size="16px">{{ extracted_matches[match]['icon']['icon'] }}</text>
+                                      </g>
+                                  </svg>
+                                  {{ extracted_matches[match]['subtype'] }}
+                              </td>
+                              <td>{{ extracted_matches[match]['id'] }}</td>
+                              <td>
+                                  {% for row in extracted_matches[match]['matches'] %}
+                                      <a href="#{{ row[0] }}:{{row[1] }}">{{ row[2] }}</a><br>
+                                  {% endfor %}
+                              </td>
+                          </tr>
+                      {% endfor %}
+                      </tbody>
+                  </table>
+              </div>
+          </div>
+
+      </div>
+  </div>
+  {% endif %}
+
+
+  <!-- nav-pills nav-justified nav-tabs-->
+
+  <div class="card">
+    <div class="card-body pt-0 py-1 px-2">
+
+      <ul class="nav nav-pills" id="pills-tab" role="tablist">
+        <li class="nav-item">
+          <a class="nav-link active" id="pills-content-tab" data-toggle="pill" href="#pills-content" role="tab" aria-controls="pills-content" aria-selected="true">Content</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" id="pills-html2text-tab" data-toggle="pill" href="#pills-html2text" role="tab" aria-controls="pills-html2text" aria-selected="false">html2text</a>
+        </li>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#">Others</a>
+          <div class="dropdown-menu">
+            <a class="dropdown-item" href="{{ url_for('objects_item.item_raw_content', id=meta['id']) }}"><i class="far fa-file"></i> &nbsp;Raw Content</a>
+            <a class="dropdown-item" href="{{ url_for('objects_item.item_download', id=meta['id']) }}"><i class="fas fa-download"></i> &nbsp;Download</a>
+          </div>
+        </li>
+      </ul>
+
+      <div class="tab-content" id="pills-tabContent">
+        <div class="tab-pane fade show active" id="pills-content" role="tabpanel" aria-labelledby="pills-content-tab">
+            {% if not extracted %}
+                <p class="my-0"> <pre class="border">{{ meta['content'] }}</pre></p>
+            {% else %}
+                <p class="my-0"> <pre class="border">{{ meta['content'][:extracted[0][0]] }}{% for row in extracted %}<span class="hg-text" data-toggle="popover" data-trigger="hover" data-html="true" title="<svg height=&quot;26&quot; width=&quot;26&quot;><g class=&quot;nodes&quot;><circle cx=&quot;13&quot; cy=&quot;13&quot; r=&quot;13&quot; fill=&quot;{{ extracted_matches[row[3]]['icon']['color'] }}&quot;></circle><text x=&quot;13&quot; y=&quot;13&quot; text-anchor=&quot;middle&quot; dominant-baseline=&quot;central&quot; class=&quot;graph_node_icon {{ extracted_matches[row[3]]['icon']['style'] }}&quot; font-size=&quot;16px&quot;>{{ extracted_matches[row[3]]['icon']['icon'] }}</text></g></svg> {{ extracted_matches[row[3]]['subtype'] }}" data-content="{{ extracted_matches[row[3]]['id'] }}" id="{{ row[0] }}:{{ row[1] }}">{{ meta['content'][row[0]:row[1]] }}</span>{% if loop.index + 1 > extracted|length %}{{ meta['content'][extracted[-1][1]:] }}{% else %}{{ meta['content'][row[1]:extracted[loop.index][0]] }}{% endif %}{% endfor %}</pre></p>
+            {% endif %}
+        </div>
+        <div class="tab-pane fade" id="pills-html2text" role="tabpanel" aria-labelledby="pills-html2text-tab">
+          <p class="my-0"> <pre id="html2text-container" class="border"></pre></p>
+        </div>
+      </div>
+
+
+
+    </div>
+  </div>
+
+<script>
+    var ltags
+    var ltagsgalaxies
+    $(document).ready(function(){
+        $('#tableDup').DataTable();
+          // $('#tableb64').DataTable({
+    			// 	"aLengthMenu": [[5, 10, 15, -1], [5, 10, 15, "All"]],
+    			// 	"iDisplayLength": 5,
+    			// 	"order": [[ 1, "asc" ]]
+    			// });
+        {% if extracted %}
+            $('#table_extracted').DataTable();
+        {% endif %}
+        $(".rotate").click(function(){
+            $(this).toggleClass("down");
+        })
+      });
+
+      $('#pills-html2text-tab').on('shown.bs.tab', function (e) {
+        if ($('#html2text-container').is(':empty')){
+          $.get("{{ url_for('objects_item.html2text') }}?id={{ meta['id'] }}").done(function(data){
+            $('#html2text-container').text(data);
+          });
+
+        }
+      });
+      $('[data-toggle="popover"]').popover();
+</script>
+
+{% if meta['crawler'] %}
+  <script>
+  var ctx = canvas.getContext('2d'), img = new Image();
+
+  /// turn off image smoothing
+  ctx.webkitImageSmoothingEnabled = false;
+  ctx.imageSmoothingEnabled = false;
+
+  img.onload = pixelate;
+  img.addEventListener("error", img_error);
+  var draw_img = false;
+
+  {% if meta['crawler']['screenshot'] %}
+      img.src = "{{ url_for('objects_item.screenshot', filename=meta['crawler']['screenshot']) }}";
+  {% else %}
+      img.src = "";
+  {% endif %}
+
+  function pixelate() {
+
+    /// use slider value
+    if( blocks.value == 50 ){
+        size = 1;
+    } else {
+        var size = (blocks.value) * 0.01;
+    }
+
+    canvas.width = img.width;
+    canvas.height = img.height;
+
+    /// cache scaled width and height
+    w = canvas.width * size;
+    h = canvas.height * size;
+
+    /// draw original image to the scaled size
+    ctx.drawImage(img, 0, 0, w, h);
+
+    /// pixelated
+    ctx.drawImage(canvas, 0, 0, w, h, 0, 0, canvas.width, canvas.height);
+
+  }
+
+  function img_error() {
+    img.onerror=null;
+    img.src="{{ url_for('static', filename='image/AIL.png') }}";
+    blocks.value = 50;
+    pixelate;
+  }
+
+  blocks.addEventListener('change', pixelate, false);
+  $(function () {
+    $('[data-toggle="popover"]').popover()
+  })
+  </script>
+{% endif %}
+
+</body>
+
+
+</html>

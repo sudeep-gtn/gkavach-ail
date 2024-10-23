@@ -1,0 +1,20 @@
+[general]
+uuid = 183f2812-db38-4935-b5da-ad03f94f118f
+
+[github]
+api_token = <YOURAPIKEY>
+
+[cache]
+expire = 86400
+
+[ail]
+url = https://127.0.0.1:7000
+apikey = <YOURAPIKEY> 
+
+[redis]
+host = 127.0.0.1
+port = 6379
+db = 0
+
+[repo]
+pathRepo = 
